@@ -1,47 +1,62 @@
 # How to Install and Run
 
-## 1. Clone the Repository
+This repo contains one main notebook:
+- `RoadCondition_Experiments.ipynb` (road-condition dataset baselines + attention placement grid)
+
+## 1) Clone
 ```bash
-git clone https://github.com/Toran625/CS_5640_Final_Project.git
-cd CS_5640_Final_Project
+git clone https://github.com/loganliddiard/MachineLearning_Project.git
+cd MachineLearning_Project
 ```
 
-## 2. Create and Activate a Virtual Environment
-### Using conda (what I used, but can be done using any other virtual environment)
+## 2) Create a Python virtual environment (venv)
+Use a standard Python environment.
+
+### Windows
 ```bash
-conda create -n attention_env python=3.13
-conda activate attention_env
+python -m venv .venv
+source .venv/Scripts/activate
+python -m pip install --upgrade pip
 ```
 
-## 3. Install Dependencies
+## 3) Install Python dependencies
 ```bash
 pip install -r requirements.txt
 ```
 
-## 4. Run the Project
-### Option 1: Launch Jupyter Notebook
+## 4) Road Condition Experiments
+
+### Dataset layout (required)
+Put the dataset folder at the repo root named exactly:
+`UDOT WINTER ROAD CONDITIONS.v1i.folder`
+
+Expected structure:
+- `UDOT WINTER ROAD CONDITIONS.v1i.folder/train/<label>/<image_id>`
+- `UDOT WINTER ROAD CONDITIONS.v1i.folder/valid/<label>/<image_id>`
+- `UDOT WINTER ROAD CONDITIONS.v1i.folder/test/<label>/<image_id>`
+
+CSV index file (required by the notebook):
+- `UDOT WINTER ROAD CONDITIONS.v1i.folder/dataset_index.csv` with columns `image_id, split, label`
+
+### (Optional) Preprocess the dataset
+Resize images to 224×224 (recommended):
 ```bash
-jupyter notebook AttentionPlacement_CNN.ipynb
+python preprocess.py
 ```
-### Option 2: Run In VSCode Environment
-Open in VSCode using the Jupyter Notebook extension and RunAll
 
-## Road Condition Experiments (New)
+If you need to generate/rebuild `dataset_index.csv` from the folder structure:
+```bash
+python dummy_model.py
+```
 
-### Dataset layout (same as scripts)
-- Put the dataset folder at the repo root named: `UDOT WINTER ROAD CONDITIONS.v1i.folder`
-- Expected structure:
-	- `UDOT WINTER ROAD CONDITIONS.v1i.folder/train/<label>/<image_id>`
-	- `UDOT WINTER ROAD CONDITIONS.v1i.folder/valid/<label>/<image_id>`
-	- `UDOT WINTER ROAD CONDITIONS.v1i.folder/test/<label>/<image_id>`
-- CSV index file:
-	- `UDOT WINTER ROAD CONDITIONS.v1i.folder/dataset_index.csv` (columns: `image_id, split, label`)
+### Run the notebook
+Launch Jupyter and open the road-condition experiment notebook:
+```bash
+jupyter notebook RoadCondition_Experiments.ipynb
+```
 
-### Recommended run order
-1. (Optional) Resize images to 224×224 using `preprocess.py`.
-2. (If needed) Rebuild the CSV index using `dummy_model.py` (it generates `dataset_index.csv`).
-3. Open and run `RoadCondition_Experiments.ipynb`.
+In VS Code: open `RoadCondition_Experiments.ipynb`, select the `.venv` kernel, then **Run All**.
 
 ### Notes
-- The default notebook run trains only basic CNN baselines.
-- The attention placement grid-search code is included but disabled by default.
+- The default notebook section trains the three CNN baselines (LeNet224, SmallAlexNet224, ResNet18).
+- The attention placement grid runs additional training runs and can take a while; reduce `fit_cfg.epochs` first if you just want a quick sanity check.
