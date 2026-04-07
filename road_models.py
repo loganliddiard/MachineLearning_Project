@@ -8,25 +8,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-class SEBlock(nn.Module):
-    def __init__(self, channels: int, reduction: int = 16) -> None:
-        super().__init__()
-        reduced = max(1, channels // reduction)
-        self.avg_pool = nn.AdaptiveAvgPool2d(1)
-        self.fc = nn.Sequential(
-            nn.Linear(channels, reduced),
-            nn.ReLU(inplace=True),
-            nn.Linear(reduced, channels),
-            nn.Sigmoid(),
-        )
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        b, c, _, _ = x.size()
-        y = self.avg_pool(x).view(b, c)
-        y = self.fc(y).view(b, c, 1, 1)
-        return x * y.expand_as(x)
-
-
 class ChannelAttention(nn.Module):
     def __init__(self, in_channels: int, reduction: int = 16) -> None:
         super().__init__()
@@ -76,15 +57,13 @@ class CBAM(nn.Module):
 @dataclass(frozen=True)
 class AttentionConfig:
     # For notebook parity with AttentionPlacement_CNN.ipynb
-    attention_type: str = "none"  # "none" | "SE" | "CBAM"
+    attention_type: str = "none"  # "none" | "CBAM"
     position: str = "none"  # "none" | "early" | "mid" | "late" | "all"
 
 
 def _make_attention(attention_type: str, channels: int) -> Optional[nn.Module]:
     if attention_type == "none":
         return None
-    if attention_type == "SE":
-        return SEBlock(channels)
     if attention_type == "CBAM":
         return CBAM(channels)
     raise ValueError(f"Unknown attention_type: {attention_type}")
