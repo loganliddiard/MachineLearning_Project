@@ -197,6 +197,75 @@ class SmallAlexNet224_Attn(nn.Module):
         return self.classifier(x)
 
 
+class ResNet18_224_Attn(nn.Module):
+    """ResNet-18 (torchvision) with optional CBAM attention placement.
+
+    Placement meanings (matching AttentionConfig):
+    - early: after layer1
+    - mid: after layer2
+    - late: after layer4
+    - all: after layer1, layer2, layer3, layer4
+    """
+
+    def __init__(
+        self,
+        num_classes: int,
+        attn: AttentionConfig = AttentionConfig(),
+    ) -> None:
+        super().__init__()
+        self.attn_cfg = attn
+
+        from torchvision.models import resnet18
+
+        self.backbone = resnet18(weights=None)
+        self.backbone.fc = nn.Linear(self.backbone.fc.in_features, num_classes)
+
+        self.attention = None
+        self.attn1 = self.attn2 = self.attn3 = self.attn4 = None
+
+        if attn.attention_type != "none":
+            if attn.position == "all":
+                self.attn1 = _make_attention(attn.attention_type, 64)
+                self.attn2 = _make_attention(attn.attention_type, 128)
+                self.attn3 = _make_attention(attn.attention_type, 256)
+                self.attn4 = _make_attention(attn.attention_type, 512)
+            else:
+                ch = 64 if attn.position == "early" else 128 if attn.position == "mid" else 512
+                self.attention = _make_attention(attn.attention_type, ch)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = self.backbone.conv1(x)
+        x = self.backbone.bn1(x)
+        x = self.backbone.relu(x)
+        x = self.backbone.maxpool(x)
+
+        x = self.backbone.layer1(x)
+        if self.attn_cfg.position == "early" and self.attention is not None:
+            x = self.attention(x)
+        if self.attn_cfg.position == "all" and self.attn1 is not None:
+            x = self.attn1(x)
+
+        x = self.backbone.layer2(x)
+        if self.attn_cfg.position == "mid" and self.attention is not None:
+            x = self.attention(x)
+        if self.attn_cfg.position == "all" and self.attn2 is not None:
+            x = self.attn2(x)
+
+        x = self.backbone.layer3(x)
+        if self.attn_cfg.position == "all" and self.attn3 is not None:
+            x = self.attn3(x)
+
+        x = self.backbone.layer4(x)
+        if self.attn_cfg.position == "late" and self.attention is not None:
+            x = self.attention(x)
+        if self.attn_cfg.position == "all" and self.attn4 is not None:
+            x = self.attn4(x)
+
+        x = self.backbone.avgpool(x)
+        x = torch.flatten(x, 1)
+        return self.backbone.fc(x)
+
+
 def torchvision_resnet18(num_classes: int) -> nn.Module:
     # Kept simple: no pretrained weights to avoid downloads.
     from torchvision.models import resnet18
@@ -204,3 +273,11 @@ def torchvision_resnet18(num_classes: int) -> nn.Module:
     model = resnet18(weights=None)
     model.fc = nn.Linear(model.fc.in_features, num_classes)
     return model
+
+
+def torchvision_resnet18_attn(
+    *,
+    num_classes: int,
+    attn: AttentionConfig = AttentionConfig(),
+) -> nn.Module:
+    return ResNet18_224_Attn(num_classes=num_classes, attn=attn)
