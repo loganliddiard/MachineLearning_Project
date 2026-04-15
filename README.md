@@ -69,16 +69,14 @@ Expected structure:
 CSV index file (required by the notebook):
 - `UDOT WINTER ROAD CONDITIONS.v1i.folder/dataset_index.csv` with columns `image_id, split, label`
 
-Note: the repo also has a top-level `dataset_index.csv`, but the notebook code expects the one inside the dataset folder.
-
 ### (Optional) Preprocess the dataset
-Resize images to 224×224 (recommended):
+Resize images to 224×224 (the zipped dataset already has been preprocessed and will be faster for you to use):
 ```bash
 python preprocess.py
 ```
 
-### (Optional) Rebuild `dataset_index.csv`
-If you need to generate/rebuild `UDOT WINTER ROAD CONDITIONS.v1i.folder/dataset_index.csv` from the folder structure:
+### Run Dummy Models
+If you want to run the dummy classifiers:
 ```bash
 python dummy_model.py
 ```
